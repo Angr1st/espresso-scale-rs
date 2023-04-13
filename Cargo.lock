@@ -224,6 +224,7 @@ dependencies = [
  "esp-backtrace",
  "esp-println",
  "esp32-hal",
+ "hx711",
 ]
 
 [[package]]
@@ -258,6 +259,15 @@ name = "heck"
 version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
+
+[[package]]
+name = "hx711"
+version = "0.7.0"
+source = "git+https://github.com/jonas-hagen/hx711.git?branch=jh-fix-mode-enum#773cc06dd765e61a37790a471f022e4ff3dabdbc"
+dependencies = [
+ "embedded-hal",
+ "nb 1.1.0",
+]
 
 [[package]]
 name = "ident_case"
