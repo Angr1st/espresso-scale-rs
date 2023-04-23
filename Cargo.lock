@@ -248,6 +248,7 @@ dependencies = [
 name = "espresso_scale_rs"
 version = "0.1.0"
 dependencies = [
+ "embedded-hal",
  "esp-alloc",
  "esp-backtrace",
  "esp-println",
