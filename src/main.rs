@@ -1,7 +1,9 @@
 #![no_std]
 #![no_main]
+#![feature(unwrap_infallible)]
 
 extern crate alloc;
+use alloc::vec::{self, Vec};
 use esp_backtrace as _;
 use esp_println::println;
 use hal::{clock::ClockControl, peripherals::Peripherals, prelude::{*, nb::block}, timer::TimerGroup, Rtc, Delay, IO};
@@ -50,19 +52,42 @@ fn main() -> ! {
 
     let mut val: i32 = 0;
 
-    let dout = io.pins.gpio6.into_floating_input();
-    let pd_sck = io.pins.gpio7.into_push_pull_output();
+    let dout = io.pins.gpio16.into_floating_input();
+    let pd_sck = io.pins.gpio17.into_push_pull_output();
 
-    let mut hx711 = Hx711::new(Delay::new(&clocks), dout, pd_sck).unwrap();
+    let delay = Delay::new(&clocks);
+
+    let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
 
     // Obtain the tara value
     println!("Obtaining tara ...");
     const N: i32 = 8;
     for _ in 0..N {
-        val += block!(hx711.retrieve()).unwrap(); // or unwrap, see features below
+        val += block!(hx711.retrieve()).into_ok(); // or unwrap, see features below
     }
     let tara = val / N;
     println!("Tara:   {}", tara);
 
     loop {}
+}
+
+
+fn receive_average<D, IN, OUT, EIN, EOUT>(hx711: &mut Hx711<D, IN, OUT> ,times:u8) -> nb::Result<i32, hx711::Error<EIN,EOUT>> 
+where 
+    D: embedded_hal::blocking::delay::DelayUs<u32>, 
+    IN: embedded_hal::digital::v2::InputPin<Error = EIN>, 
+    OUT: embedded_hal::digital::v2::OutputPin<Error = EOUT> 
+{
+    let mut results = Vec::with_capacity(times as usize);
+
+    for i in 0..times {
+        let value = block!(hx711.retrieve())?;
+        results.push(value);
+    }
+
+    let avg = results.iter().sum::<i32>() as f32 / times as f32;
+
+    let avg = avg.round();
+
+    Ok(avg)
 }
