@@ -4,7 +4,7 @@
 extern crate alloc;
 use esp_backtrace as _;
 use esp_println::println;
-use hal::{clock::ClockControl, peripherals::Peripherals, prelude::*, timer::TimerGroup, Rtc, Delay, IO};
+use hal::{clock::ClockControl, peripherals::Peripherals, prelude::{*, nb::block}, timer::TimerGroup, Rtc, Delay, IO};
 use hx711::Hx711;
 #[global_allocator]
 static ALLOCATOR: esp_alloc::EspHeap = esp_alloc::EspHeap::empty();
@@ -50,18 +50,16 @@ fn main() -> ! {
 
     let mut val: i32 = 0;
 
-    let mut led = io.pins.gpio6.into_push_pull_output();
+    let dout = io.pins.gpio6.into_floating_input();
+    let pd_sck = io.pins.gpio7.into_push_pull_output();
 
-    let dout = io.pins.gpio6.pa6.into_floating_input(&mut gpioa.crl);
-    let pd_sck = io.gpioa.pa7.into_push_pull_output(&mut gpioa.crl);
-
-    let mut hx711 = Hx711::new(Delay::new(cp.SYST, clocks), dout, pd_sck).into_ok();
+    let mut hx711 = Hx711::new(Delay::new(&clocks), dout, pd_sck).unwrap();
 
     // Obtain the tara value
     println!("Obtaining tara ...");
     const N: i32 = 8;
     for _ in 0..N {
-        val += block!(hx711.retrieve()).into_ok(); // or unwrap, see features below
+        val += block!(hx711.retrieve()).unwrap(); // or unwrap, see features below
     }
     let tara = val / N;
     println!("Tara:   {}", tara);
