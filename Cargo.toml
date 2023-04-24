@@ -13,3 +13,4 @@ esp-alloc = { version = "0.2.0", features = ["oom-handler"] }
 hx711 = { git = "https://github.com/jonas-hagen/hx711.git", branch = "jh-fix-mode-enum", features = ["never_type"]}
 ssd1309 = "0.3"
 embedded-hal = { version="0.2.7", features = ["unproven"]}
+micromath = "2.0.0"
