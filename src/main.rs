@@ -3,7 +3,7 @@
 #![feature(unwrap_infallible)]
 
 extern crate alloc;
-use alloc::vec::{self, Vec};
+use alloc::vec::Vec;
 use esp_backtrace as _;
 use esp_println::println;
 use hal::{clock::ClockControl, peripherals::Peripherals, prelude::{*, nb::block}, timer::TimerGroup, Rtc, Delay, IO};
@@ -68,7 +68,11 @@ fn main() -> ! {
     let tara = val / N;
     println!("Tara:   {}", tara);
 
-    loop {}
+    loop {
+
+        let current_val = block!(receive_average(&mut hx711, 8)).into_ok();
+       println!("Result: {}", current_val);
+    }
 }
 
 
@@ -80,14 +84,16 @@ where
 {
     let mut results = Vec::with_capacity(times as usize);
 
-    for i in 0..times {
+    for _ in 0..times {
         let value = block!(hx711.retrieve())?;
         results.push(value);
     }
 
-    let avg = results.iter().sum::<i32>() as f32 / times as f32;
+    let avg = results.iter().sum::<i32>() / times as i32;
 
-    let avg = avg.round();
+    //use micromath::F32Ext;
+
+    //let avg = avg.round() as i32;
 
     Ok(avg)
 }
