@@ -10,16 +10,29 @@ compile_error!("feature \"spi\" and feature \"i2c\" cannot be enabled at the sam
 
 extern crate alloc;
 use alloc::vec::Vec;
+use embedded_graphics::{
+    mono_font::{
+        ascii::{FONT_6X10, FONT_9X18_BOLD},
+        MonoTextStyleBuilder,
+    },
+    pixelcolor::BinaryColor, text::{Text, Alignment}, prelude::*, Drawable,
+};
 use esp_backtrace as _;
 use esp_println::println;
 use hal::{
     clock::ClockControl,
+    i2c::I2C,
     peripherals::Peripherals,
     prelude::{nb::block, *},
     timer::TimerGroup,
     Delay, Rtc, IO,
 };
 use hx711::Hx711;
+#[cfg(feature="ssd1306")]
+use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
+
+#[cfg(feature = "ssd1309")]
+use ssd1309::prelude::*;
 
 #[global_allocator]
 static ALLOCATOR: esp_alloc::EspHeap = esp_alloc::EspHeap::empty();
@@ -47,7 +60,7 @@ fn init_heap() {
 fn main() -> ! {
     init_heap();
     let peripherals = Peripherals::take();
-    let system = peripherals.DPORT.split();
+    let mut system = peripherals.DPORT.split();
     let clocks = ClockControl::boot_defaults(system.clock_control).freeze();
 
     // Disable the RTC and TIMG watchdog timers
@@ -63,8 +76,46 @@ fn main() -> ! {
 
     let io: IO = IO::new(peripherals.GPIO, peripherals.IO_MUX);
 
-    let mut val: i32 = 0;
+    let scl = io.pins.gpio21;//.into_open_drain_output();
+    let sca = io.pins.gpio19;//.into_open_drain_output();
 
+    let i2c = I2C::new(
+        peripherals.I2C0,
+        sca,
+        scl,
+        100u32.kHz(),
+        &mut system.peripheral_clock_control,
+        &clocks,
+    );
+
+    // Start timer (5 second interval)
+    let mut timer0 = timer_group0.timer0;
+    timer0.start(5u64.secs());
+
+    // Initialize display
+    let mut display: DrawTarget = if cfg!(feature = "ssd1306") {
+        let interface = I2CDisplayInterface::new(i2c);
+        let mut display = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
+            .into_buffered_graphics_mode();
+        display.init().unwrap()
+    } else if cfg!(feature = "ssd1309") {
+        
+    } else {
+        println!("Only either ssd1306 or ssd1309 are supported!");
+        loop {}
+    };
+
+    // Specify different text styles
+    let text_style = MonoTextStyleBuilder::new()
+        .font(&FONT_6X10)
+        .text_color(BinaryColor::On)
+        .build();
+    let text_style_big = MonoTextStyleBuilder::new()
+        .font(&FONT_9X18_BOLD)
+        .text_color(BinaryColor::On)
+        .build();
+
+    //Init hx711
     let dout = io.pins.gpio16.into_floating_input();
     let pd_sck = io.pins.gpio17.into_push_pull_output();
 
@@ -72,6 +123,7 @@ fn main() -> ! {
 
     let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
 
+    let mut val: i32 = 0;
     // Obtain the tara value
     println!("Obtaining tara ...");
     const N: i32 = 8;
@@ -84,6 +136,52 @@ fn main() -> ! {
     loop {
         let current_val = block!(receive_average(&mut hx711, 8)).into_ok();
         println!("Result: {}", current_val);
+        
+        // Fill display bufffer with a centered text with two lines (and two text
+        // styles)
+        Text::with_alignment(
+            "esp-hal",
+            display.bounding_box().center() + Point::new(0, 0),
+            text_style_big,
+            Alignment::Center,
+        )
+        .draw(&mut display)
+        .unwrap();
+
+        Text::with_alignment(
+            "Chip: ESP32",
+            display.bounding_box().center() + Point::new(0, 14),
+            text_style,
+            Alignment::Center,
+        )
+        .draw(&mut display)
+        .unwrap();
+
+        // Write buffer to display
+        display.flush().unwrap();
+        // Clear display buffer
+        display.clear();
+
+        // Wait 5 seconds
+        block!(timer0.wait()).unwrap();
+
+        // Write single-line centered text "Hello World" to buffer
+        Text::with_alignment(
+            "Hello World!",
+            display.bounding_box().center(),
+            text_style_big,
+            Alignment::Center,
+        )
+        .draw(&mut display)
+        .unwrap();
+
+        // Write buffer to display
+        display.flush().unwrap();
+        // Clear display buffer
+        display.clear();
+
+        // Wait 5 seconds
+        block!(timer0.wait()).unwrap();
     }
 }
 
