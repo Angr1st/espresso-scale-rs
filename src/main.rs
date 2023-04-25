@@ -2,12 +2,25 @@
 #![no_main]
 #![feature(unwrap_infallible)]
 
+#[cfg(all(feature = "ssd1306", feature = "ssd1309"))]
+compile_error!("feature \"ssd1306\" and feature \"ssd1309\" cannot be enabled at the same time");
+
+#[cfg(all(feature = "spi", feature = "i2c"))]
+compile_error!("feature \"spi\" and feature \"i2c\" cannot be enabled at the same time");
+
 extern crate alloc;
 use alloc::vec::Vec;
 use esp_backtrace as _;
 use esp_println::println;
-use hal::{clock::ClockControl, peripherals::Peripherals, prelude::{*, nb::block}, timer::TimerGroup, Rtc, Delay, IO};
+use hal::{
+    clock::ClockControl,
+    peripherals::Peripherals,
+    prelude::{nb::block, *},
+    timer::TimerGroup,
+    Delay, Rtc, IO,
+};
 use hx711::Hx711;
+
 #[global_allocator]
 static ALLOCATOR: esp_alloc::EspHeap = esp_alloc::EspHeap::empty();
 
@@ -66,21 +79,22 @@ fn main() -> ! {
         val += block!(hx711.retrieve()).into_ok(); // or unwrap, see features below
     }
     let tara = val / N;
-    println!("Tara:   {}", tara);
+    println!("Tara: {}", tara);
 
     loop {
-
         let current_val = block!(receive_average(&mut hx711, 8)).into_ok();
-       println!("Result: {}", current_val);
+        println!("Result: {}", current_val);
     }
 }
 
-
-fn receive_average<D, IN, OUT, EIN, EOUT>(hx711: &mut Hx711<D, IN, OUT> ,times:u8) -> nb::Result<i32, hx711::Error<EIN,EOUT>> 
-where 
-    D: embedded_hal::blocking::delay::DelayUs<u32>, 
-    IN: embedded_hal::digital::v2::InputPin<Error = EIN>, 
-    OUT: embedded_hal::digital::v2::OutputPin<Error = EOUT> 
+fn receive_average<D, IN, OUT, EIN, EOUT>(
+    hx711: &mut Hx711<D, IN, OUT>,
+    times: u8,
+) -> nb::Result<i32, hx711::Error<EIN, EOUT>>
+where
+    D: embedded_hal::blocking::delay::DelayUs<u32>,
+    IN: embedded_hal::digital::v2::InputPin<Error = EIN>,
+    OUT: embedded_hal::digital::v2::OutputPin<Error = EOUT>,
 {
     let mut results = Vec::with_capacity(times as usize);
 
