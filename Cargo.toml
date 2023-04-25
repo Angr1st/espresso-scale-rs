@@ -15,6 +15,7 @@ embedded-hal = { version="0.2.7", features = ["unproven"] }
 micromath = "2.0.0"
 ssd1309 = { version="0.3", optional = true }
 ssd1306 = { version="0.7.1", optional = true }
+embedded-graphics = "0.7.1"
 
 [features]
 default = ["spi", "ssd1309"]
