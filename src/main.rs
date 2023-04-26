@@ -69,15 +69,15 @@ fn main() -> ! {
 
     //Display Config
     // esp32 -> (read connected to) ssd1309
-    let dc = io.pins.gpio18; //V_SPI_CLK SCK -> dc 
+    let dc = io.pins.gpio18.into_push_pull_output(); //V_SPI_CLK SCK -> dc 
     let cs = io.pins.gpio19; //V_SPI_Q MISO -> cs
-    let scl = io.pins.gpio22.into_push_pull_output(); //V_SPI_WP SCL -> SCL
-    let sda = io.pins.gpio23.into_push_pull_output(); //V_SPI_D MOSI -> SDA
+    let scl = io.pins.gpio22; //V_SPI_WP SCL -> SCL
+    let sda = io.pins.gpio23; //V_SPI_D MOSI -> SDA
     let mut res = io.pins.gpio5.into_push_pull_output(); //V_SPI_CSO SS -> RES
 
     let spi = hal::Spi::new_no_cs(
         peripherals.SPI3,
-        dc,
+        scl,
         sda,
         cs,
         400u32.kHz(),
@@ -86,7 +86,7 @@ fn main() -> ! {
         &clocks,
     );
 
-    let spi_interface = display_interface_spi::SPIInterfaceNoCS::new(spi, scl);
+    let spi_interface = display_interface_spi::SPIInterfaceNoCS::new(spi, dc);
 
     let mut display: GraphicsMode<_> = ssd1309::Builder::new().connect(spi_interface).into();
 
