@@ -15,7 +15,6 @@ use esp_backtrace as _;
 use esp_println::println;
 use hal::{
     clock::ClockControl,
-    i2c::I2C,
     peripherals::Peripherals,
     prelude::{nb::block, *},
     timer::TimerGroup,
