@@ -76,34 +76,91 @@ fn main() -> ! {
 
     let io: IO = IO::new(peripherals.GPIO, peripherals.IO_MUX);
 
-    let scl = io.pins.gpio21;//.into_open_drain_output();
-    let sca = io.pins.gpio19;//.into_open_drain_output();
+    //Init hx711
+    let dout = io.pins.gpio25.into_floating_input();
+    let pd_sck = io.pins.gpio26.into_push_pull_output();
 
-    let i2c = I2C::new(
-        peripherals.I2C0,
-        sca,
-        scl,
-        100u32.kHz(),
-        &mut system.peripheral_clock_control,
-        &clocks,
-    );
+    let delay = Delay::new(&clocks);
+
+    let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
+
+    //Display Config
+    let mut display = {
+        #[cfg(all(feature="ssd1306",feature="i2c"))]
+        {
+            let scl = io.pins.gpio21;//.into_open_drain_output();
+            let sca = io.pins.gpio19;//.into_open_drain_output();
+        
+            let i2c = I2C::new(
+                peripherals.I2C0,
+                sca,
+                scl,
+                100u32.kHz(),
+                &mut system.peripheral_clock_control,
+                &clocks,
+            );
+
+            let interface = I2CDisplayInterface::new(i2c);
+            let mut display = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
+                .into_buffered_graphics_mode();
+            display.init().unwrap()
+        }
+        #[cfg(all(feature="ssd1309",feature="i2c"))] {
+            let scl = io.pins.gpio21;//.into_open_drain_output();
+            let sca = io.pins.gpio19;//.into_open_drain_output();
+        
+            let i2c = I2C::new(
+                peripherals.I2C0,
+                sca,
+                scl,
+                100u32.kHz(),
+                &mut system.peripheral_clock_control,
+                &clocks,
+            );
+
+            let i2c_interface = I2CInterface::new(i2c, 0x3C, 0x40);
+
+            Builder::new().connect(i2c_interface).into()
+        }
+        #[cfg(all(feature="ssd1309",feature="spi"))] {
+            // esp32 -> (read connected to) ssd1309
+            let dc = io.pins.gpio18.into_push_pull_output(); //V_SPI_CLK SCK -> dc 
+            let cs = io.pins.gpio19.into_push_pull_output(); //V_SPI_Q MISO -> cs
+            let scl = io.pins.gpio22; //V_SPI_WP SCL -> SCL
+            let sda = io.pins.gpio23; //V_SPI_D MOSI -> SDA
+            let mut res = io.pins.gpio5.into_push_pull_output(); //V_SPI_CSO SS -> RES
+
+            let spi = hal::Spi::new(
+                peripherals.SPI3,
+                dc,
+                sda,
+                cs,
+                res,
+                400u32.kHz(),
+                hal::spi::SpiMode::Mode0,
+                &mut system.peripheral_clock_control,
+                &clocks,
+            );
+
+            let spi_interface = display_interface_spi::SPIInterface::new(spi, dc, cs);
+
+            ssd1309::Builder::new().connect(spi_interface).into()
+        }
+    };
 
     // Start timer (5 second interval)
     let mut timer0 = timer_group0.timer0;
     timer0.start(5u64.secs());
 
-    // Initialize display
-    let mut display: DrawTarget = if cfg!(feature = "ssd1306") {
-        let interface = I2CDisplayInterface::new(i2c);
-        let mut display = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
-            .into_buffered_graphics_mode();
-        display.init().unwrap()
-    } else if cfg!(feature = "ssd1309") {
-        
-    } else {
-        println!("Only either ssd1306 or ssd1309 are supported!");
-        loop {}
-    };
+    // // Initialize display
+    // let mut display: DrawTarget = if cfg!(feature = "ssd1306") {
+
+    // } else if cfg!(feature = "ssd1309") {
+
+    // } else {
+    //     println!("Only either ssd1306 or ssd1309 are supported!");
+    //     loop {}
+    // };
 
     // Specify different text styles
     let text_style = MonoTextStyleBuilder::new()
@@ -114,14 +171,6 @@ fn main() -> ! {
         .font(&FONT_9X18_BOLD)
         .text_color(BinaryColor::On)
         .build();
-
-    //Init hx711
-    let dout = io.pins.gpio16.into_floating_input();
-    let pd_sck = io.pins.gpio17.into_push_pull_output();
-
-    let delay = Delay::new(&clocks);
-
-    let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
 
     let mut val: i32 = 0;
     // Obtain the tara value

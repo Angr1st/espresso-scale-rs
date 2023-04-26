@@ -9,17 +9,19 @@ license = "MIT OR Apache-2.0"
 hal = { package = "esp32-hal", version = "0.11.0" }
 esp-backtrace = { version = "0.7.0", features = ["esp32", "panic-handler", "exception-handler", "print-uart"] }
 esp-println = { version = "0.5.0", features = ["esp32"] }
-esp-alloc = { version = "0.2.0", features = ["oom-handler"] }
+esp-alloc = { version = "0.3.0" }
 hx711 = { git = "https://github.com/jonas-hagen/hx711.git", branch = "jh-fix-mode-enum", features = ["never_type"] }
 embedded-hal = { version="0.2.7", features = ["unproven"] }
 micromath = "2.0.0"
 ssd1309 = { version="0.3", optional = true }
 ssd1306 = { version="0.7.1", optional = true }
 embedded-graphics = "0.7.1"
+display-interface-spi = {version="0.4.1", optional = true}
+display-interface-i2c = {version="0.4.0", optional = true}
 
 [features]
 default = ["spi", "ssd1309"]
-i2c = []
-spi = []
+i2c = ["dep:display-interface-i2c"]
+spi = ["dep:display-interface-spi"]
 ssd1306 = ["dep:ssd1306"]
 ssd1309 = ["dep:ssd1309"]

@@ -199,9 +199,9 @@ dependencies = [
 
 [[package]]
 name = "esp-alloc"
-version = "0.2.0"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "549b0754d845cda23cfde7acdaa39caf0bf09984a88ef7b7dc190861dd2f53c4"
+checksum = "83792eb7261a375bb838679fea2b45654b8f4a48da6bef10a96da5054aa81c7d"
 dependencies = [
  "critical-section",
  "linked_list_allocator",
@@ -288,6 +288,8 @@ dependencies = [
 name = "espresso_scale_rs"
 version = "0.1.0"
 dependencies = [
+ "display-interface-i2c",
+ "display-interface-spi",
  "embedded-graphics",
  "embedded-hal",
  "esp-alloc",
