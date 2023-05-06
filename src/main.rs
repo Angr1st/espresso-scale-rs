@@ -3,7 +3,7 @@
 #![feature(unwrap_infallible)]
 
 extern crate alloc;
-use alloc::vec::Vec;
+use alloc::{vec::Vec, string::ToString};
 use embedded_graphics::{
     mono_font::{
         ascii::{FONT_6X10, FONT_9X18_BOLD},
@@ -101,20 +101,9 @@ fn main() -> ! {
 
     let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
 
-
     // Start timer (5 second interval)
     let mut timer0 = timer_group0.timer0;
     timer0.start(5u64.secs());
-
-    // // Initialize display
-    // let mut display: DrawTarget = if cfg!(feature = "ssd1306") {
-
-    // } else if cfg!(feature = "ssd1309") {
-
-    // } else {
-    //     println!("Only either ssd1306 or ssd1309 are supported!");
-    //     loop {}
-    // };
 
     // Specify different text styles
     let text_style = MonoTextStyleBuilder::new()
@@ -136,41 +125,56 @@ fn main() -> ! {
     let tara = val / N;
     println!("Tara: {}", tara);
 
+    // Fill display bufffer with a centered text with two lines (and two text
+    // styles)
+    Text::with_alignment(
+        "esp32",
+        display.bounding_box().center() + Point::new(0, 0),
+        text_style_big,
+        Alignment::Center,
+    )
+    .draw(&mut display)
+    .unwrap();
+
+    Text::with_alignment(
+        "espresso-scale-rs",
+        display.bounding_box().center() + Point::new(0, 14),
+        text_style,
+        Alignment::Center,
+    )
+    .draw(&mut display)
+    .unwrap();
+
+    // Write buffer to display
+    display.flush().unwrap();
+    // Clear display buffer
+    display.clear();
+
+    // Wait 5 seconds
+    block!(timer0.wait()).unwrap();
+
+    // Write single-line centered text "Hello World" to buffer
+    Text::with_alignment(
+        &val.to_string(),
+        display.bounding_box().center(),
+        text_style_big,
+        Alignment::Center,
+    )
+    .draw(&mut display)
+    .unwrap();
+
+    // Write buffer to display
+    display.flush().unwrap();
+    // Clear display buffer
+    display.clear();
+
     loop {
         let current_val = block!(receive_average(&mut hx711, 8)).into_ok();
         println!("Result: {}", current_val);
-        
-        // Fill display bufffer with a centered text with two lines (and two text
-        // styles)
-        Text::with_alignment(
-            "esp-hal",
-            display.bounding_box().center() + Point::new(0, 0),
-            text_style_big,
-            Alignment::Center,
-        )
-        .draw(&mut display)
-        .unwrap();
-
-        Text::with_alignment(
-            "Chip: ESP32",
-            display.bounding_box().center() + Point::new(0, 14),
-            text_style,
-            Alignment::Center,
-        )
-        .draw(&mut display)
-        .unwrap();
-
-        // Write buffer to display
-        display.flush().unwrap();
-        // Clear display buffer
-        display.clear();
-
-        // Wait 5 seconds
-        block!(timer0.wait()).unwrap();
 
         // Write single-line centered text "Hello World" to buffer
         Text::with_alignment(
-            "Hello World!",
+            &current_val.to_string(),
             display.bounding_box().center(),
             text_style_big,
             Alignment::Center,
@@ -184,7 +188,7 @@ fn main() -> ! {
         display.clear();
 
         // Wait 5 seconds
-        block!(timer0.wait()).unwrap();
+        //block!(timer0.wait()).unwrap();
     }
 }
 
