@@ -23,6 +23,8 @@ use hal::{
 use hx711::Hx711;
 use ssd1309::prelude::*;
 
+mod scale;
+
 #[global_allocator]
 static ALLOCATOR: esp_alloc::EspHeap = esp_alloc::EspHeap::empty();
 
@@ -115,15 +117,15 @@ fn main() -> ! {
         .text_color(BinaryColor::On)
         .build();
 
-    let mut val: i32 = 0;
+    let mut scale : scale::Scale = Default::default();
+
     // Obtain the tara value
     println!("Obtaining tara ...");
-    const N: i32 = 8;
-    for _ in 0..N {
-        val += block!(hx711.retrieve()).into_ok(); // or unwrap, see features below
-    }
-    let tara = val / N;
+
+    let tara = block!(receive_average(&mut hx711, 8)).into_ok();
     println!("Tara: {}", tara);
+
+    scale.set_offset(tara);
 
     // Fill display bufffer with a centered text with two lines (and two text
     // styles)
@@ -155,7 +157,7 @@ fn main() -> ! {
 
     // Write single-line centered text "Hello World" to buffer
     Text::with_alignment(
-        &val.to_string(),
+        &tara.to_string(),
         display.bounding_box().center(),
         text_style_big,
         Alignment::Center,
@@ -194,25 +196,19 @@ fn main() -> ! {
 
 fn receive_average<D, IN, OUT, EIN, EOUT>(
     hx711: &mut Hx711<D, IN, OUT>,
-    times: u8,
+    times: i32,
 ) -> nb::Result<i32, hx711::Error<EIN, EOUT>>
 where
     D: embedded_hal::blocking::delay::DelayUs<u32>,
     IN: embedded_hal::digital::v2::InputPin<Error = EIN>,
     OUT: embedded_hal::digital::v2::OutputPin<Error = EOUT>,
 {
-    let mut results = Vec::with_capacity(times as usize);
-
+    let mut val: i32 = 0;
+    // Obtain the tara value
     for _ in 0..times {
-        let value = block!(hx711.retrieve())?;
-        results.push(value);
+        val += block!(hx711.retrieve())?; // or unwrap, see features below
     }
+    let tara = val / times;
 
-    let avg = results.iter().sum::<i32>() / times as i32;
-
-    //use micromath::F32Ext;
-
-    //let avg = avg.round() as i32;
-
-    Ok(avg)
+    Ok(tara)
 }
