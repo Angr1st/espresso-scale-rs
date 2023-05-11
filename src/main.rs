@@ -3,7 +3,7 @@
 #![feature(unwrap_infallible)]
 
 extern crate alloc;
-use alloc::{vec::Vec, string::ToString};
+use alloc::{string::ToString};
 use embedded_graphics::{
     mono_font::{
         ascii::{FONT_6X10, FONT_9X18_BOLD},
@@ -105,7 +105,7 @@ fn main() -> ! {
 
     // Start timer (5 second interval)
     let mut timer0 = timer_group0.timer0;
-    timer0.start(5u64.secs());
+    timer0.start(3u64.secs());
 
     // Specify different text styles
     let text_style = MonoTextStyleBuilder::new()
