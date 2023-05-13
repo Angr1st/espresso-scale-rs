@@ -1,8 +1,9 @@
-
+#[derive(Debug)]
 pub enum ScaleMode {
     Init,
     Weighing,
-    Menu
+    Menu,
+    Calibrate,
 }
 
 impl Default for ScaleMode {
@@ -11,24 +12,54 @@ impl Default for ScaleMode {
     }
 }
 
+#[derive(Debug)]
 pub struct Scale {
-    pub offset: i32,
-    pub scale: f32
+    offset: i32,
+    scale: f32,
+    mode: ScaleMode,
 }
 
 impl Default for Scale {
     fn default() -> Self {
-        Self { offset: 0, scale: 1.0 }
+        Self {
+            offset: 0,
+            scale: 1.0,
+            mode: ScaleMode::default(),
+        }
     }
 }
 
 impl Scale {
-    pub fn set_offset(&mut self, offset: i32) {
+    pub fn init(&mut self, offset: i32) {
+        self.set_offset(offset);
+        self.mode = ScaleMode::Weighing;
+    }
+
+    /// Calibrate with 100g weight
+    pub fn calibrate(&mut self, raw_value: i32) {
+        //m = (y - b)/x
+        // m scale (f32)
+        // y weight in g (i32)
+        // b offset (i32)
+        // x raw value (i32)
+        let scale: f32 = (100 - self.offset) as f32 / raw_value as f32;
+        self.set_scale(scale)
+    }
+
+    fn set_offset(&mut self, offset: i32) {
         self.offset = offset;
     }
 
-    pub fn set_scale(&mut self, scale: f32) {
+    fn set_scale(&mut self, scale: f32) {
         self.scale = scale;
+    }
+
+    pub fn get_scale(&self) -> f32 {
+        self.scale
+    }
+
+    pub fn get_offset(&self) -> i32 {
+        self.offset
     }
 
     pub fn get_value(&self, raw_value: i32) -> i32 {

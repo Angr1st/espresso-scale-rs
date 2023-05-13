@@ -3,13 +3,16 @@
 #![feature(unwrap_infallible)]
 
 extern crate alloc;
-use alloc::{string::ToString};
+use alloc::string::ToString;
 use embedded_graphics::{
     mono_font::{
         ascii::{FONT_6X10, FONT_9X18_BOLD},
         MonoTextStyleBuilder,
     },
-    pixelcolor::BinaryColor, text::{Text, Alignment}, prelude::*, Drawable,
+    pixelcolor::BinaryColor,
+    prelude::*,
+    text::{Alignment, Text},
+    Drawable,
 };
 use esp_backtrace as _;
 use esp_println::println;
@@ -56,9 +59,17 @@ fn main() -> ! {
 
     // Disable the RTC and TIMG watchdog timers
     let mut rtc = Rtc::new(peripherals.RTC_CNTL);
-    let timer_group0 = TimerGroup::new(peripherals.TIMG0, &clocks, &mut system.peripheral_clock_control);
+    let timer_group0 = TimerGroup::new(
+        peripherals.TIMG0,
+        &clocks,
+        &mut system.peripheral_clock_control,
+    );
     let mut wdt0 = timer_group0.wdt;
-    let timer_group1 = TimerGroup::new(peripherals.TIMG1, &clocks, &mut system.peripheral_clock_control);
+    let timer_group1 = TimerGroup::new(
+        peripherals.TIMG1,
+        &clocks,
+        &mut system.peripheral_clock_control,
+    );
     let mut wdt1 = timer_group1.wdt;
     rtc.rwdt.disable();
     wdt0.disable();
@@ -71,7 +82,7 @@ fn main() -> ! {
 
     //Display Config
     // esp32 -> (read connected to) ssd1309
-    let dc = io.pins.gpio18.into_push_pull_output(); //V_SPI_CLK SCK -> dc 
+    let dc = io.pins.gpio18.into_push_pull_output(); //V_SPI_CLK SCK -> dc
     let cs = io.pins.gpio19; //V_SPI_Q MISO -> cs
     let scl = io.pins.gpio22; //V_SPI_WP SCL -> SCL
     let sda = io.pins.gpio23; //V_SPI_D MOSI -> SDA
@@ -103,7 +114,7 @@ fn main() -> ! {
 
     let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
 
-    // Start timer (5 second interval)
+    // Start timer (3 second interval)
     let mut timer0 = timer_group0.timer0;
     timer0.start(3u64.secs());
 
@@ -117,7 +128,7 @@ fn main() -> ! {
         .text_color(BinaryColor::On)
         .build();
 
-    let mut scale : scale::Scale = Default::default();
+    let mut scale: scale::Scale = Default::default();
 
     // Obtain the tara value
     println!("Obtaining tara ...");
@@ -125,7 +136,7 @@ fn main() -> ! {
     let tara = block!(receive_average(&mut hx711, 8)).into_ok();
     println!("Tara: {}", tara);
 
-    scale.set_offset(tara);
+    scale.init(tara);
 
     // Fill display bufffer with a centered text with two lines (and two text
     // styles)
@@ -171,8 +182,10 @@ fn main() -> ! {
     display.clear();
 
     loop {
-        let current_val = block!(receive_average(&mut hx711, 8)).into_ok();
-        println!("Result: {}", current_val);
+        let raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
+        let current_val = scale.get_value(raw_value);
+
+        println!("Raw: {}; Result: {}", raw_value, current_val);
 
         // Write single-line centered text "Hello World" to buffer
         Text::with_alignment(
@@ -189,7 +202,7 @@ fn main() -> ! {
         // Clear display buffer
         display.clear();
 
-        // Wait 5 seconds
+        // Wait 3 seconds
         //block!(timer0.wait()).unwrap();
     }
 }
