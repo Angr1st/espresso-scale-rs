@@ -42,7 +42,7 @@ impl Scale {
         // y weight in g (i32)
         // b offset (i32)
         // x raw value (i32)
-        let scale: f32 = (100 - self.offset) as f32 / raw_value as f32;
+        let scale: f32 = (111.26 - self.offset as f32) as f32 / raw_value as f32;
         self.set_scale(scale)
     }
 
@@ -50,7 +50,7 @@ impl Scale {
         self.offset = offset;
     }
 
-    fn set_scale(&mut self, scale: f32) {
+    pub fn set_scale(&mut self, scale: f32) {
         self.scale = scale;
     }
 

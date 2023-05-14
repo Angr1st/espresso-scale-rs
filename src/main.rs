@@ -114,9 +114,9 @@ fn main() -> ! {
 
     let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
 
-    // Start timer (3 second interval)
+    // Start timer (5 second interval)
     let mut timer0 = timer_group0.timer0;
-    timer0.start(3u64.secs());
+    timer0.start(5u64.secs());
 
     // Specify different text styles
     let text_style = MonoTextStyleBuilder::new()
@@ -137,6 +137,7 @@ fn main() -> ! {
     println!("Tara: {}", tara);
 
     scale.init(tara);
+    scale.set_scale(-0.33847365);
 
     // Fill display bufffer with a centered text with two lines (and two text
     // styles)
@@ -181,11 +182,22 @@ fn main() -> ! {
     // Clear display buffer
     display.clear();
 
+    let mut initialised = true;
+
     loop {
         let raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
         let current_val = scale.get_value(raw_value);
+        let current_val_g = scale.get_units(current_val);
+        if initialised {
+            println!("Raw: {}; Result: {}; {}g", raw_value, current_val, current_val_g);
+        }
+        else {
+            scale.calibrate(raw_value);
+            initialised = true;
+            let scale_scale = scale.get_scale();
+            println!("Raw: {}; Result: {}; Current scale: {}", raw_value, current_val, scale_scale);
+        }
 
-        println!("Raw: {}; Result: {}", raw_value, current_val);
 
         // Write single-line centered text "Hello World" to buffer
         Text::with_alignment(
@@ -202,7 +214,7 @@ fn main() -> ! {
         // Clear display buffer
         display.clear();
 
-        // Wait 3 seconds
+        // Wait 5 seconds
         //block!(timer0.wait()).unwrap();
     }
 }
