@@ -74,7 +74,6 @@ fn main() -> ! {
     rtc.rwdt.disable();
     wdt0.disable();
     wdt1.disable();
-    println!("Hello world!");
 
     let io: IO = IO::new(peripherals.GPIO, peripherals.IO_MUX);
 
