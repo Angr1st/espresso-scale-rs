@@ -136,7 +136,7 @@ fn main() -> ! {
     println!("Tara: {}", tara);
 
     scale.init(tara);
-    scale.set_scale(-0.33847365);
+    scale.set_scale(-0.360342);
 
     // Fill display bufffer with a centered text with two lines (and two text
     // styles)
