@@ -42,7 +42,7 @@ impl Scale {
         // y weight in g (i32)
         // b offset (i32)
         // x raw value (i32)
-        let scale: f32 = (100 - self.offset) as f32 / raw_value as f32;
+        let scale: f32 = (100.33 - self.offset) as f32 / raw_value as f32;
         self.set_scale(scale)
     }
 
@@ -66,12 +66,12 @@ impl Scale {
         raw_value - self.offset
     }
 
-    pub fn get_units(&self, value: i32) -> i32 {
+    pub fn get_units(&self, raw_value: i32) -> i32 {
         use micromath::F32Ext;
 
-        let result = value as f32 / self.scale;
+        let result = raw_value as f32 * self.scale;
 
-        result.round() as i32
+        (result.round() as i32) + self.offset
     }
 
     pub fn tare(&mut self, raw_value: i32) {
