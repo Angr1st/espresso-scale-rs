@@ -4,6 +4,7 @@
 
 extern crate alloc;
 use alloc::string::ToString;
+use alloc::format;
 use embedded_graphics::{
     mono_font::{
         ascii::{FONT_6X10, FONT_9X18_BOLD},
@@ -132,11 +133,11 @@ fn main() -> ! {
     // Obtain the tara value
     println!("Obtaining tara ...");
 
-    let tara = block!(receive_average(&mut hx711, 8)).into_ok();
+    let tara = block!(receive_average(&mut hx711, 16)).into_ok();
     println!("Tara: {}", tara);
 
     scale.init(tara);
-    scale.set_scale(-0.360342);
+    //scale.set_scale(-0.360342);
 
     // Fill display bufffer with a centered text with two lines (and two text
     // styles)
@@ -164,6 +165,7 @@ fn main() -> ! {
     display.clear();
 
     // Wait 5 seconds
+    println!("Waiting for 5 seconds!");
     block!(timer0.wait()).unwrap();
 
     // Write single-line centered text "Hello World" to buffer
@@ -181,14 +183,16 @@ fn main() -> ! {
     // Clear display buffer
     display.clear();
 
-    let mut initialised = true;
+    let mut initialised = false;
 
     loop {
         let raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
         let current_val = scale.get_value(raw_value);
-        let current_val_g = scale.get_units(current_val);
+        let current_val_g = scale.get_units(raw_value);
+        let current_offset = scale.get_offset();
+        let current_scale = scale.get_scale();
         if initialised {
-            println!("Raw: {}; Result: {}; {}g", raw_value, current_val, current_val_g);
+            println!("Raw: {}; Result: {}; {}g; Offset: {}; Scale: {}", raw_value, current_val, current_val_g, current_offset, current_scale);
         }
         else {
             scale.calibrate(raw_value);
@@ -200,7 +204,7 @@ fn main() -> ! {
 
         // Write single-line centered text "Hello World" to buffer
         Text::with_alignment(
-            &current_val.to_string(),
+            &format!("{:.1$}g", current_val_g, 2),
             display.bounding_box().center(),
             text_style_big,
             Alignment::Center,

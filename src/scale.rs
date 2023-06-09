@@ -1,3 +1,5 @@
+use embedded_graphics::pixelcolor::raw;
+
 #[derive(Debug)]
 pub enum ScaleMode {
     Init,
@@ -16,6 +18,7 @@ impl Default for ScaleMode {
 pub struct Scale {
     offset: i32,
     scale: f32,
+    scale_reciprocal: f32,
     mode: ScaleMode,
 }
 
@@ -24,6 +27,7 @@ impl Default for Scale {
         Self {
             offset: 0,
             scale: 1.0,
+            scale_reciprocal: 1.0 / 1.0,
             mode: ScaleMode::default(),
         }
     }
@@ -42,7 +46,10 @@ impl Scale {
         // y weight in g (i32)
         // b offset (i32)
         // x raw value (i32)
-        let scale: f32 = (100.33 - self.offset) as f32 / raw_value as f32;
+        let value = raw_value - self.get_offset();
+        let value = value as f32;
+        let scale = value / 100.33;
+        //let scale: f32 = (100.33 - self.offset as f32) / raw_value as f32;
         self.set_scale(scale)
     }
 
@@ -52,10 +59,15 @@ impl Scale {
 
     pub fn set_scale(&mut self, scale: f32) {
         self.scale = scale;
+        self.scale_reciprocal = 1.0 / self.scale;
     }
 
     pub fn get_scale(&self) -> f32 {
         self.scale
+    }
+
+    pub fn get_scale_reciprocal(&self) -> f32 {
+        self.scale_reciprocal
     }
 
     pub fn get_offset(&self) -> i32 {
@@ -66,12 +78,14 @@ impl Scale {
         raw_value - self.offset
     }
 
-    pub fn get_units(&self, raw_value: i32) -> i32 {
+    pub fn get_units(&self, raw_value: i32) -> f32 {
         use micromath::F32Ext;
 
-        let result = raw_value as f32 * self.scale;
+        let value = raw_value - self.offset;
 
-        (result.round() as i32) + self.offset
+        let result = value as f32 * self.scale_reciprocal;
+
+        result
     }
 
     pub fn tare(&mut self, raw_value: i32) {
