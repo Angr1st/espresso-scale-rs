@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+use alloc::boxed::Box;
 use embedded_graphics::pixelcolor::raw;
 
 #[derive(Debug)]
@@ -14,15 +16,37 @@ impl Default for ScaleMode {
     }
 }
 
+struct Scale<S: ScaleState> {
+    state: alloc::boxed::Box<ActualScaleState>,
+    marker: core::marker::PhantomData<S>
+}
+
+impl Scale<Init> {
+    fn new() -> Self {
+        Self { state: Box::new(ActualScaleState::default()), marker: PhantomData }
+    }
+}
+
+enum Init {}
+enum Weighing {}
+enum Menu {}
+enum Calibrating {}
+
+trait ScaleState {}
+impl ScaleState for Init {}
+impl ScaleState for Weighing {}
+impl ScaleState for Menu {}
+impl ScaleState for Calibrating {}
+
 #[derive(Debug)]
-pub struct Scale {
+pub struct ActualScaleState {
     offset: i32,
     scale: f32,
     scale_reciprocal: f32,
     mode: ScaleMode,
 }
 
-impl Default for Scale {
+impl Default for ActualScaleState {
     fn default() -> Self {
         Self {
             offset: 0,
@@ -33,7 +57,7 @@ impl Default for Scale {
     }
 }
 
-impl Scale {
+impl ActualScaleState {
     pub fn init(&mut self, offset: i32) {
         self.set_offset(offset);
         self.mode = ScaleMode::Weighing;

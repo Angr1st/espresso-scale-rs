@@ -128,7 +128,7 @@ fn main() -> ! {
         .text_color(BinaryColor::On)
         .build();
 
-    let mut scale: scale::Scale = Default::default();
+    let mut scale: scale::ActualScaleState = Default::default();
 
     // Obtain the tara value
     println!("Obtaining tara ...");
