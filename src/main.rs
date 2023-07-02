@@ -114,6 +114,9 @@ fn main() -> ! {
 
     let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
 
+    //Init Touch
+    let touch = io.pins.gpio2.into_pull_down_input();
+
     // Start timer (5 second interval)
     let mut timer0 = timer_group0.timer0;
     timer0.start(5u64.secs());

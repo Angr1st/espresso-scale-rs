@@ -1,6 +1,5 @@
 use core::marker::PhantomData;
 use alloc::boxed::Box;
-use embedded_graphics::pixelcolor::raw;
 
 #[derive(Debug)]
 pub enum ScaleMode {
