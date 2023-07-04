@@ -113,6 +113,15 @@ fn main() -> ! {
 
     let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
 
+    let touch_pin_2 = io.pins.gpio2.into_pull_down_input();
+
+    let touch_pad_2 = &peripherals.RTC_IO.touch_pad2;
+
+    touch_pad_2.write(|w| w.start().set_bit());
+    let read_result = touch_pad_2.read().bits();
+
+    println!("touch pad 2 bits: {}", read_result);
+
     // Start timer (3 second interval)
     let mut timer0 = timer_group0.timer0;
     timer0.start(3u64.secs());
