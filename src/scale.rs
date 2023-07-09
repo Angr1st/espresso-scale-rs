@@ -15,27 +15,39 @@ impl Default for ScaleMode {
     }
 }
 
-struct Scale<S: ScaleState> {
+pub struct Scale<S: ScaleState> {
     state: alloc::boxed::Box<ActualScaleState>,
     marker: core::marker::PhantomData<S>
 }
 
 impl Scale<Init> {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self { state: Box::new(ActualScaleState::default()), marker: PhantomData }
     }
 }
 
-enum Init {}
-enum Weighing {}
-enum Menu {}
-enum Calibrating {}
+impl From<Scale<Init>> for Scale<Weighing> {
+    fn from(value: Scale<Init>) -> Self {
+        Self { state: value.state, marker: PhantomData }
+    }
+}
 
-trait ScaleState {}
+impl Scale<Weighing> {
+    
+}
+
+pub enum Init {}
+pub enum Weighing {}
+pub enum Menu {}
+pub enum Calibrating {}
+pub enum Brewing {}
+
+pub trait ScaleState {}
 impl ScaleState for Init {}
 impl ScaleState for Weighing {}
 impl ScaleState for Menu {}
 impl ScaleState for Calibrating {}
+impl ScaleState for Brewing {}
 
 #[derive(Debug)]
 pub struct ActualScaleState {

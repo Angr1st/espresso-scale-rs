@@ -27,6 +27,8 @@ use hal::{
 use hx711::Hx711;
 use ssd1309::prelude::*;
 
+use crate::scale::{Scale, Weighing, Init};
+
 mod scale;
 
 #[global_allocator]
@@ -114,7 +116,7 @@ fn main() -> ! {
 
     let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
 
-    //Init Touch
+    //Init Button B1
     let touch = io.pins.gpio2.into_pull_down_input();
 
     // Start timer (5 second interval)
@@ -132,6 +134,10 @@ fn main() -> ! {
         .build();
 
     let mut scale: scale::ActualScaleState = Default::default();
+
+    let state = Scale::<Init>::new(); 
+
+    let state = Into::<Scale<Weighing>>::into(state);
 
     // Obtain the tara value
     println!("Obtaining tara ...");
