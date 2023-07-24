@@ -3,8 +3,8 @@
 #![feature(unwrap_infallible)]
 
 extern crate alloc;
-use alloc::string::ToString;
 use alloc::format;
+use alloc::string::ToString;
 use embedded_graphics::{
     mono_font::{
         ascii::{FONT_6X10, FONT_9X18_BOLD},
@@ -27,7 +27,7 @@ use hal::{
 use hx711::Hx711;
 use ssd1309::prelude::*;
 
-use crate::scale::{Scale, Weighing, Init};
+use crate::scale::{Calibrating, Init, Scale, Weighing};
 
 mod scale;
 
@@ -117,7 +117,7 @@ fn main() -> ! {
     let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
 
     //Init Button B1
-    let touch = io.pins.gpio2.into_pull_down_input();
+    let button1 = io.pins.gpio2.into_pull_down_input();
 
     // Start timer (5 second interval)
     let mut timer0 = timer_group0.timer0;
@@ -132,21 +132,6 @@ fn main() -> ! {
         .font(&FONT_9X18_BOLD)
         .text_color(BinaryColor::On)
         .build();
-
-    let mut scale: scale::ActualScaleState = Default::default();
-
-    let state = Scale::<Init>::new(); 
-
-    let state = Into::<Scale<Weighing>>::into(state);
-
-    // Obtain the tara value
-    println!("Obtaining tara ...");
-
-    let tara = block!(receive_average(&mut hx711, 16)).into_ok();
-    println!("Tara: {}", tara);
-
-    scale.init(tara);
-    //scale.set_scale(-0.360342);
 
     // Fill display bufffer with a centered text with two lines (and two text
     // styles)
@@ -177,11 +162,17 @@ fn main() -> ! {
     println!("Waiting for 5 seconds!");
     block!(timer0.wait()).unwrap();
 
+    let state = Scale::<Init>::new();
+
+    // Obtain the tara value
+    let tara_message = "Obtaining tara ...";
+    println!("{}", tara_message);
+
     // Write single-line centered text "Hello World" to buffer
     Text::with_alignment(
-        &tara.to_string(),
+        tara_message,
         display.bounding_box().center(),
-        text_style_big,
+        text_style,
         Alignment::Center,
     )
     .draw(&mut display)
@@ -192,24 +183,75 @@ fn main() -> ! {
     // Clear display buffer
     display.clear();
 
-    let mut initialised = false;
+    let tara = block!(receive_average(&mut hx711, 16)).into_ok();
+
+    let tara_result = format!("Tara: {}", tara);
+    println!("{}", tara_result);
+
+    // Write single-line centered text "Hello World" to buffer
+    Text::with_alignment(
+        tara_message,
+        display.bounding_box().center(),
+        text_style,
+        Alignment::Center,
+    )
+    .draw(&mut display)
+    .unwrap();
+
+    // Write buffer to display
+    display.flush().unwrap();
+    // Clear display buffer
+    display.clear();
+
+    let state = state.init(tara);
+    //scale.set_scale(-0.360342);
+
+    // Wait 3 seconds
+    timer0.start(3u64.secs());
+    println!("Waiting for 3 seconds! Next output message");
+    block!(timer0.wait()).unwrap();
+
+    // Write single-line centered text "Start Calibration" to buffer
+    Text::with_alignment(
+        "Start Calibration",
+        display.bounding_box().center(),
+        text_style,
+        Alignment::Center,
+    )
+    .draw(&mut display)
+    .unwrap();
+
+    // Write buffer to display
+    display.flush().unwrap();
+    // Clear display buffer
+    display.clear();
+
+    println!("Waiting for 3 seconds! Next calibrate with 100g");
+    block!(timer0.wait()).unwrap();
+
+    //let mut initialised = false;
+    //load first raw value
+    let raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
+    let state = state.calibrate(raw_value);
+
+    let current_val = state.get_value(raw_value);
+    let scale_scale = state.get_scale();
+    println!(
+        "Raw: {}; Result: {}; Current scale: {}",
+        raw_value, current_val, scale_scale
+    );
 
     loop {
         let raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
-        let current_val = scale.get_value(raw_value);
-        let current_val_g = scale.get_units(raw_value);
-        let current_offset = scale.get_offset();
-        let current_scale = scale.get_scale();
-        if initialised {
-            println!("Raw: {}; Result: {}; {}g; Offset: {}; Scale: {}", raw_value, current_val, current_val_g, current_offset, current_scale);
-        }
-        else {
-            scale.calibrate(raw_value);
-            initialised = true;
-            let scale_scale = scale.get_scale();
-            println!("Raw: {}; Result: {}; Current scale: {}", raw_value, current_val, scale_scale);
-        }
+        let current_val = state.get_value(raw_value);
+        let current_val_g = state.get_units(raw_value);
+        let current_offset = state.get_offset();
+        let current_scale = state.get_scale();
 
+        println!(
+            "Raw: {}; Result: {}; {}g; Offset: {}; Scale: {}",
+            raw_value, current_val, current_val_g, current_offset, current_scale
+        );
 
         // Write single-line centered text "Hello World" to buffer
         Text::with_alignment(

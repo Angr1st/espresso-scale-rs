@@ -1,5 +1,5 @@
-use core::marker::PhantomData;
 use alloc::boxed::Box;
+use core::marker::PhantomData;
 
 #[derive(Debug)]
 pub enum ScaleMode {
@@ -17,23 +17,74 @@ impl Default for ScaleMode {
 
 pub struct Scale<S: ScaleState> {
     state: alloc::boxed::Box<ActualScaleState>,
-    marker: core::marker::PhantomData<S>
+    marker: core::marker::PhantomData<S>,
 }
 
 impl Scale<Init> {
     pub fn new() -> Self {
-        Self { state: Box::new(ActualScaleState::default()), marker: PhantomData }
+        Self {
+            state: Box::new(ActualScaleState::default()),
+            marker: PhantomData,
+        }
+    }
+
+    pub fn init(mut self, offset: i32) -> Scale<Calibrating> {
+        self.state.init(offset);
+        Scale::<Calibrating>::new(self)
     }
 }
 
-impl From<Scale<Init>> for Scale<Weighing> {
-    fn from(value: Scale<Init>) -> Self {
-        Self { state: value.state, marker: PhantomData }
+impl Scale<Calibrating> {
+    fn new(init: Scale<Init>) -> Self {
+        Self {
+            state: init.state,
+            marker: PhantomData,
+        }
+    }
+
+    pub fn calibrate(mut self, raw_value: i32) -> Scale<Weighing> {
+        self.state.calibrate(raw_value);
+        Scale::<Weighing>::new(self)
     }
 }
 
 impl Scale<Weighing> {
-    
+    fn new(calibrating: Scale<Calibrating>) -> Self {
+        Self {
+            state: calibrating.state,
+            marker: PhantomData,
+        }
+    }
+
+    pub fn get_scale(&self) -> f32 {
+        self.state.scale
+    }
+
+    pub fn get_scale_reciprocal(&self) -> f32 {
+        self.state.scale_reciprocal
+    }
+
+    pub fn get_offset(&self) -> i32 {
+        self.state.offset
+    }
+
+    pub fn get_value(&self, raw_value: i32) -> i32 {
+        raw_value - self.state.offset
+    }
+
+    pub fn get_units(&self, raw_value: i32) -> f32 {
+        use micromath::F32Ext;
+
+        let value = raw_value - self.state.offset;
+
+        let result = value as f32 * self.state.scale_reciprocal;
+
+        result
+    }
+
+    pub fn tare(&mut self, raw_value: i32) {
+        self.state.set_offset(raw_value)
+    }
 }
 
 pub enum Init {}
@@ -69,13 +120,13 @@ impl Default for ActualScaleState {
 }
 
 impl ActualScaleState {
-    pub fn init(&mut self, offset: i32) {
+    fn init(&mut self, offset: i32) {
         self.set_offset(offset);
         self.mode = ScaleMode::Weighing;
     }
 
     /// Calibrate with 100g weight
-    pub fn calibrate(&mut self, raw_value: i32) {
+    fn calibrate(&mut self, raw_value: i32) {
         //m = (y - b)/x
         // m scale (f32)
         // y weight in g (i32)
