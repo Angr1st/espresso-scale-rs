@@ -101,11 +101,62 @@ impl ScaleState for Calibrating {}
 impl ScaleState for Brewing {}
 
 #[derive(Debug)]
+pub enum ButtonPressState {
+    NotPressed,
+    ShortPress,
+    LongPress
+}
+
+const SHORT_PRESS_THRESHOLD : u32 = 3;
+const LONG_PRESS_THRESHOLD : u32 = 15;
+
+#[derive(Debug)]
+pub struct ButtonState {
+    pressed: bool,
+    duration: u32,
+    press_state: ButtonPressState
+}
+
+impl ButtonState {
+    fn reset(&mut self) {
+        self.pressed = false;
+        self.duration = 0;
+        self.press_state = ButtonPressState::NotPressed;
+    }
+
+    fn pressed(&mut self) {
+        self.pressed = true;
+        self.duration = self.duration.saturating_add(1u32);
+        if self.duration >= SHORT_PRESS_THRESHOLD && self.duration < LONG_PRESS_THRESHOLD {
+            self.press_state = ButtonPressState::ShortPress;
+        }
+        else if self.duration > LONG_PRESS_THRESHOLD {
+            self.press_state = ButtonPressState::LongPress;
+        }
+    }
+
+    fn release(&mut self) {
+        self.pressed = false;
+    }
+}
+
+impl Default for ButtonState {
+    fn default() -> Self {
+        Self {
+            pressed: false,
+            duration: 0,
+            press_state: ButtonPressState::NotPressed
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct ActualScaleState {
     offset: i32,
     scale: f32,
     scale_reciprocal: f32,
     mode: ScaleMode,
+    tara_button: crate::scale::ButtonState
 }
 
 impl Default for ActualScaleState {
@@ -115,6 +166,7 @@ impl Default for ActualScaleState {
             scale: 1.0,
             scale_reciprocal: 1.0 / 1.0,
             mode: ScaleMode::default(),
+            tara_button: crate::scale::ButtonState::default()
         }
     }
 }

@@ -5,6 +5,7 @@
 extern crate alloc;
 use alloc::format;
 use alloc::string::ToString;
+use debounced_button::ButtonConfig;
 use embedded_graphics::{
     mono_font::{
         ascii::{FONT_6X10, FONT_9X18_BOLD},
@@ -116,8 +117,12 @@ fn main() -> ! {
 
     let mut hx711 = Hx711::new(delay, dout, pd_sck).into_ok();
 
-    //Init Button B1
-    let button1 = io.pins.gpio2.into_pull_down_input();
+    //Init Button B1 Menu(GPIO 2)
+    let menu_button = io.pins.gpio2.into_pull_up_input();
+
+    //Init Button B2 Tara(GPIO4)
+    let tara_button = io.pins.gpio4.into_pull_up_input();
+    let mut tara_button = debounced_button::Button::new(tara_button, 8u16, ButtonConfig::default());
 
     // Start timer (5 second interval)
     let mut timer0 = timer_group0.timer0;
@@ -232,7 +237,7 @@ fn main() -> ! {
     //let mut initialised = false;
     //load first raw value
     let raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
-    let state = state.calibrate(raw_value);
+    let mut state = state.calibrate(raw_value);
 
     let current_val = state.get_value(raw_value);
     let scale_scale = state.get_scale();
@@ -268,6 +273,15 @@ fn main() -> ! {
         // Clear display buffer
         display.clear();
 
+        tara_button.poll();
+        let tara_state = tara_button.read();
+        match tara_state {
+            debounced_button::ButtonState::Down => {},
+            debounced_button::ButtonState::Press => state.tare(raw_value),
+            debounced_button::ButtonState::Pressing => {},
+            debounced_button::ButtonState::LongPress => {},
+            debounced_button::ButtonState::Idle => {},
+        }
         // Wait 5 seconds
         //block!(timer0.wait()).unwrap();
     }
