@@ -46,6 +46,11 @@ impl Scale<Calibrating> {
         self.state.calibrate(raw_value);
         Scale::<Weighing>::new(self)
     }
+
+    pub fn calibrate_fixed_value(mut self, scale: f32) -> Scale<Weighing> {
+        self.state.set_scale(scale);
+        Scale::<Weighing>::new(self)
+    }
 }
 
 impl Scale<Weighing> {
