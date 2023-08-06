@@ -122,7 +122,7 @@ fn main() -> ! {
 
     //Init Button B2 Tara(GPIO4)
     let tara_button = io.pins.gpio4.into_pull_up_input();
-    let mut tara_button = debounced_button::Button::new(tara_button, 8u16, ButtonConfig::default());
+    let mut tara_button = debounced_button::Button::new(tara_button, 3u16, ButtonConfig::default());
 
     // Start timer (5 second interval)
     let mut timer0 = timer_group0.timer0;
@@ -213,40 +213,42 @@ fn main() -> ! {
 
     // Wait 3 seconds
     timer0.start(3u64.secs());
-    println!("Waiting for 3 seconds! Next output message");
-    block!(timer0.wait()).unwrap();
+    //println!("Waiting for 3 seconds! Next output message");
+    //block!(timer0.wait()).unwrap();
 
     // Write single-line centered text "Start Calibration" to buffer
-    Text::with_alignment(
-        "Start Calibration",
-        display.bounding_box().center(),
-        text_style,
-        Alignment::Center,
-    )
-    .draw(&mut display)
-    .unwrap();
+    //Text::with_alignment(
+    //    "Start Calibration",
+    //    display.bounding_box().center(),
+    //    text_style,
+    //    Alignment::Center,
+    //)
+    //.draw(&mut display)
+    //.unwrap();
 
     // Write buffer to display
-    display.flush().unwrap();
+    //display.flush().unwrap();
     // Clear display buffer
-    display.clear();
+    //display.clear();
 
-    println!("Waiting for 3 seconds! Next calibrate with 100g");
-    block!(timer0.wait()).unwrap();
+    //println!("Waiting for 3 seconds! Next calibrate with 100g");
+    //block!(timer0.wait()).unwrap();
 
     //let mut initialised = false;
     //load first raw value
+    //2586.4148
     let raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
-    let mut state = state.calibrate(raw_value);
+    let mut state = state.calibrate_fixed_value(2586.4148);
 
-    let current_val = state.get_value(raw_value);
-    let scale_scale = state.get_scale();
-    println!(
-        "Raw: {}; Result: {}; Current scale: {}",
-        raw_value, current_val, scale_scale
-    );
+    //let current_val = state.get_value(raw_value);
+    //let scale_scale = state.get_scale();
+    //println!(
+    //    "Raw: {}; Result: {}; Current scale: {}",
+    //    raw_value, current_val, scale_scale
+    //);
 
     loop {
+        tara_button.poll();
         let raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
         let current_val = state.get_value(raw_value);
         let current_val_g = state.get_units(raw_value);
@@ -268,6 +270,8 @@ fn main() -> ! {
         .draw(&mut display)
         .unwrap();
 
+        tara_button.poll();
+
         // Write buffer to display
         display.flush().unwrap();
         // Clear display buffer
@@ -276,11 +280,11 @@ fn main() -> ! {
         tara_button.poll();
         let tara_state = tara_button.read();
         match tara_state {
-            debounced_button::ButtonState::Down => {},
-            debounced_button::ButtonState::Press => state.tare(raw_value),
-            debounced_button::ButtonState::Pressing => {},
-            debounced_button::ButtonState::LongPress => {},
-            debounced_button::ButtonState::Idle => {},
+            debounced_button::ButtonState::Down => {println!("Down")},
+            debounced_button::ButtonState::Press => println!("Press"),
+            debounced_button::ButtonState::Pressing => state.tare(raw_value),
+            debounced_button::ButtonState::LongPress => {println!("LongPress")},
+            debounced_button::ButtonState::Idle => {println!("Idle")},
         }
         // Wait 5 seconds
         //block!(timer0.wait()).unwrap();
