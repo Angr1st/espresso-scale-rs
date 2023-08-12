@@ -54,6 +54,9 @@ fn init_heap() {
     }
 }
 
+const SAMPLES : usize = 8;
+const SAMPLES_INDEX : usize = SAMPLES - 1;
+
 #[entry]
 fn main() -> ! {
     init_heap();
@@ -247,9 +250,24 @@ fn main() -> ! {
     //    raw_value, current_val, scale_scale
     //);
 
+    let mut measurements : [i32; SAMPLES] = [0; SAMPLES];
+    let mut measurement_index: PositionTracker<SAMPLES_INDEX> = PositionTracker::default();
+
+    //get initial samples
+    for _ in 0..SAMPLES {
+        let measurement = block!(hx711.retrieve()).into_ok();
+        update_array(&mut measurements, measurement, &measurement_index);
+        measurement_index.next();
+    }
+
+    println!("Current index is {}", measurement_index.current_index());
+
     loop {
         tara_button.poll();
-        let raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
+        let measurement = block!(hx711.retrieve()).into_ok();
+        update_array(&mut measurements, measurement, &measurement_index);
+        measurement_index.next();
+        let raw_value = compute_average(&measurements);
         let current_val = state.get_value(raw_value);
         let current_val_g = state.get_units(raw_value);
         let current_offset = state.get_offset();
@@ -308,4 +326,40 @@ where
     let tara = val / times;
 
     Ok(tara)
+}
+
+struct PositionTracker<const MAXINDEX: usize> {
+    index: usize,
+}
+
+impl<const MAXINDEX: usize> PositionTracker<MAXINDEX> {
+    pub fn next(&mut self) {
+        if self.index == MAXINDEX {
+            self.index = 0;
+        } else {
+            self.index = self.index + 1;
+        }
+    }
+
+    pub fn current_index(&self) -> usize {
+        self.index
+    }
+}
+
+impl<const MAXINDEX: usize> Default for PositionTracker<MAXINDEX> {
+    fn default() -> Self {
+        Self {
+            index: 0
+        }
+    }
+}
+
+fn update_array<const ARRAYLENGTH: usize, const MAXINDEX: usize>(array : &mut [i32; ARRAYLENGTH], next_value: i32, position: &PositionTracker<MAXINDEX>) {
+    array[position.current_index()] = next_value;
+}
+
+fn compute_average(slice: &[i32]) -> i32 {
+    let sum : i32 = slice.iter().sum();
+
+    sum / (slice.len() as i32)
 }
