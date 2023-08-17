@@ -122,10 +122,11 @@ fn main() -> ! {
 
     //Init Button B1 Menu(GPIO 2)
     let menu_button = io.pins.gpio2.into_pull_up_input();
+    let mut menu_button = debounced_button::Button::new(menu_button, u16, ButtonConfig::default());
 
     //Init Button B2 Tara(GPIO4)
     let tara_button = io.pins.gpio4.into_pull_up_input();
-    let mut tara_button = debounced_button::Button::new(tara_button, 3u16, ButtonConfig::default());
+    let mut tara_button = debounced_button::Button::new(tara_button, u16, ButtonConfig::default());
 
     // Start timer (5 second interval)
     let mut timer0 = timer_group0.timer0;
@@ -263,7 +264,6 @@ fn main() -> ! {
     println!("Current index is {}", measurement_index.current_index());
 
     loop {
-        tara_button.poll();
         let measurement = block!(hx711.retrieve()).into_ok();
         update_array(&mut measurements, measurement, &measurement_index);
         measurement_index.next();
@@ -288,21 +288,24 @@ fn main() -> ! {
         .draw(&mut display)
         .unwrap();
 
-        tara_button.poll();
-
         // Write buffer to display
         display.flush().unwrap();
         // Clear display buffer
         display.clear();
 
         tara_button.poll();
-        let tara_state = tara_button.read();
-        match tara_state {
-            debounced_button::ButtonState::Down => {println!("Down")},
-            debounced_button::ButtonState::Press => println!("Press"),
-            debounced_button::ButtonState::Pressing => state.tare(raw_value),
-            debounced_button::ButtonState::LongPress => {println!("LongPress")},
-            debounced_button::ButtonState::Idle => {println!("Idle")},
+
+        let current_index = measurement_index.current_index();
+        
+        if current_index == SAMPLES_INDEX {
+            let tara_state = tara_button.read();
+            match tara_state {
+                debounced_button::ButtonState::Down => {println!("Down")},
+                debounced_button::ButtonState::Press => println!("Press"),
+                debounced_button::ButtonState::Pressing => state.tare(raw_value),
+                debounced_button::ButtonState::LongPress => {println!("LongPress")},
+                debounced_button::ButtonState::Idle => {println!("Idle")},
+            }
         }
         // Wait 5 seconds
         //block!(timer0.wait()).unwrap();
