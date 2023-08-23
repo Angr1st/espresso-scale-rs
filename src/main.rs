@@ -122,11 +122,11 @@ fn main() -> ! {
 
     //Init Button B1 Menu(GPIO 2)
     let menu_button = io.pins.gpio2.into_pull_up_input();
-    let mut menu_button = debounced_button::Button::new(menu_button, u16, ButtonConfig::default());
+    let mut menu_button = debounced_button::Button::new(menu_button, 2u16, ButtonConfig::default());
 
     //Init Button B2 Tara(GPIO4)
     let tara_button = io.pins.gpio4.into_pull_up_input();
-    let mut tara_button = debounced_button::Button::new(tara_button, u16, ButtonConfig::default());
+    let mut tara_button = debounced_button::Button::new(tara_button, 2u16, ButtonConfig::default());
 
     // Start timer (5 second interval)
     let mut timer0 = timer_group0.timer0;
@@ -241,7 +241,7 @@ fn main() -> ! {
     //let mut initialised = false;
     //load first raw value
     //2586.4148
-    let raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
+    let _raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
     let mut state = state.calibrate_fixed_value(2586.4148);
 
     //let current_val = state.get_value(raw_value);
