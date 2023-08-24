@@ -42,7 +42,7 @@ impl Scale {
         // y weight in g (i32)
         // b offset (i32)
         // x raw value (i32)
-        let scale: f32 = (100.33 - self.offset) as f32 / raw_value as f32;
+        let scale: f32 = (100.33 - self.offset as f32) as f32 / raw_value as f32;
         self.set_scale(scale)
     }
 
@@ -78,3 +78,10 @@ impl Scale {
         self.set_offset(raw_value)
     }
 }
+//146290 offset (b)
+//405700 raw  (x)
+//-0.360342 (m)
+// m * x + b
+
+//Lib macht aber x - b / m
+
