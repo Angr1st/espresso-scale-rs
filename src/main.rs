@@ -261,8 +261,8 @@ fn main() -> ! {
         measurement_index.next();
     }
 
-    println!("Current index is {}", measurement_index.current_index());
-
+    //println!("Current index is {}", measurement_index.current_index());
+    let mut cycle: u64 = 0;
     loop {
         let measurement = block!(hx711.retrieve()).into_ok();
         update_array(&mut measurements, measurement, &measurement_index);
@@ -270,13 +270,13 @@ fn main() -> ! {
         let raw_value = compute_average(&measurements);
         let current_val = state.get_value(raw_value);
         let current_val_g = state.get_units(raw_value);
-        let current_offset = state.get_offset();
-        let current_scale = state.get_scale();
+        // let current_offset = state.get_offset();
+        // let current_scale = state.get_scale();
 
-        println!(
-            "Raw: {}; Result: {}; {}g; Offset: {}; Scale: {}",
-            raw_value, current_val, current_val_g, current_offset, current_scale
-        );
+        // println!(
+        //     "Raw: {}; Result: {}; {}g; Offset: {}; Scale: {}",
+        //     raw_value, current_val, current_val_g, current_offset, current_scale
+        // );
 
         // Write single-line centered text "Hello World" to buffer
         Text::with_alignment(
@@ -300,12 +300,18 @@ fn main() -> ! {
         if current_index == SAMPLES_INDEX {
             let tara_state = tara_button.read();
             match tara_state {
-                debounced_button::ButtonState::Down => {println!("Down")},
+                debounced_button::ButtonState::Down => println!("Down"),
                 debounced_button::ButtonState::Press => println!("Press"),
                 debounced_button::ButtonState::Pressing => state.tare(raw_value),
-                debounced_button::ButtonState::LongPress => {println!("LongPress")},
-                debounced_button::ButtonState::Idle => {println!("Idle")},
+                debounced_button::ButtonState::LongPress => println!("LongPress"),
+                debounced_button::ButtonState::Idle => println!("Idle"),
             }
+        }
+
+        cycle = cycle + 1;
+        if cycle == 1000000 {
+            println!("Completed 1000000 cycles!");
+            loop {}
         }
         // Wait 5 seconds
         //block!(timer0.wait()).unwrap();
