@@ -199,7 +199,7 @@ fn main() -> ! {
 
     // Write single-line centered text "Hello World" to buffer
     Text::with_alignment(
-        tara_message,
+        &tara_result,
         display.bounding_box().center(),
         text_style,
         Alignment::Center,
@@ -217,32 +217,32 @@ fn main() -> ! {
 
     // Wait 3 seconds
     timer0.start(3u64.secs());
-    //println!("Waiting for 3 seconds! Next output message");
-    //block!(timer0.wait()).unwrap();
+    println!("Waiting for 3 seconds! Next output message");
+    block!(timer0.wait()).unwrap();
 
     // Write single-line centered text "Start Calibration" to buffer
-    //Text::with_alignment(
-    //    "Start Calibration",
-    //    display.bounding_box().center(),
-    //    text_style,
-    //    Alignment::Center,
-    //)
-    //.draw(&mut display)
-    //.unwrap();
+    Text::with_alignment(
+        "Start Calibration",
+        display.bounding_box().center(),
+        text_style,
+        Alignment::Center,
+    )
+    .draw(&mut display)
+    .unwrap();
 
     // Write buffer to display
-    //display.flush().unwrap();
+    display.flush().unwrap();
     // Clear display buffer
-    //display.clear();
+    display.clear();
 
-    //println!("Waiting for 3 seconds! Next calibrate with 100g");
-    //block!(timer0.wait()).unwrap();
+    println!("Waiting for 3 seconds! Next calibrate with 100g");
+    block!(timer0.wait()).unwrap();
 
-    //let mut initialised = false;
+    let mut initialised = false;
     //load first raw value
     //2586.4148
     let _raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
-    let mut state = state.calibrate_fixed_value(2586.4148);
+    let mut state = state.calibrate(_raw_value); //state.calibrate_fixed_value(2586.4148);
 
     //let current_val = state.get_value(raw_value);
     //let scale_scale = state.get_scale();
@@ -263,6 +263,7 @@ fn main() -> ! {
 
     //println!("Current index is {}", measurement_index.current_index());
     let mut cycle: u64 = 0;
+    
     loop {
         let measurement = block!(hx711.retrieve()).into_ok();
         update_array(&mut measurements, measurement, &measurement_index);
@@ -300,22 +301,26 @@ fn main() -> ! {
         if current_index == SAMPLES_INDEX {
             let tara_state = tara_button.read();
             match tara_state {
-                debounced_button::ButtonState::Down => println!("Down"),
-                debounced_button::ButtonState::Press => println!("Press"),
+                debounced_button::ButtonState::Down => no_op(),
+                debounced_button::ButtonState::Press => no_op(),
                 debounced_button::ButtonState::Pressing => state.tare(raw_value),
-                debounced_button::ButtonState::LongPress => println!("LongPress"),
-                debounced_button::ButtonState::Idle => println!("Idle"),
+                debounced_button::ButtonState::LongPress => no_op(),
+                debounced_button::ButtonState::Idle => no_op(),
             }
         }
 
         cycle = cycle + 1;
-        if cycle == 100000 {
-            println!("Completed 100000 cycles!");
+        if cycle == 100 {
+            println!("Completed 100 cycles!");
             loop {}
         }
         // Wait 5 seconds
         //block!(timer0.wait()).unwrap();
     }
+}
+
+fn no_op() {
+
 }
 
 fn receive_average<D, IN, OUT, EIN, EOUT>(
