@@ -309,8 +309,8 @@ fn main() -> ! {
         }
 
         cycle = cycle + 1;
-        if cycle == 1000000 {
-            println!("Completed 1000000 cycles!");
+        if cycle == 100000 {
+            println!("Completed 100000 cycles!");
             loop {}
         }
         // Wait 5 seconds
