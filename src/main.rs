@@ -11,7 +11,7 @@ use embedded_graphics::{
         ascii::{FONT_6X10, FONT_9X18_BOLD},
         MonoTextStyleBuilder,
     },
-    pixelcolor::BinaryColor,
+    pixelcolor::Rgb565,
     prelude::*,
     text::{Alignment, Text},
     Drawable,
@@ -26,7 +26,7 @@ use hal::{
     Delay, Rtc, IO,
 };
 use hx711::Hx711;
-use ssd1309::prelude::*;
+use ssd1331::*;
 
 use crate::scale::{Calibrating, Init, Scale, Weighing};
 
@@ -88,28 +88,28 @@ fn main() -> ! {
 
     //Display Config
     // esp32 -> (read connected to) ssd1309
-    let dc = io.pins.gpio18.into_push_pull_output(); //V_SPI_CLK SCK -> dc
-    let cs = io.pins.gpio19; //V_SPI_Q MISO -> cs
-    let scl = io.pins.gpio22; //V_SPI_WP SCL -> SCL
-    let sda = io.pins.gpio23; //V_SPI_D MOSI -> SDA
-    let mut res = io.pins.gpio5.into_push_pull_output(); //V_SPI_CSO SS -> RES
+    let sck = io.pins.gpio18.into_push_pull_output(); //Serial Clock V_SPI_CLK SCK -> dc
+    let miso = io.pins.gpio19; //Master In V_SPI_Q MISO -> cs
+    let scl = io.pins.gpio22; //Also Serial Clock V_SPI_WP SCL -> SCL
+    let sda = io.pins.gpio23; //Master out V_SPI_D MOSI -> SDA
+    let mut cs = io.pins.gpio5.into_push_pull_output(); //Slave Select V_SPI_CSO SS -> RES
 
     let spi = hal::Spi::new_no_cs(
         peripherals.SPI3,
         scl,
         sda,
-        cs,
-        400u32.kHz(),
+        miso,
+        8u32.MHz(),
         hal::spi::SpiMode::Mode0,
         &mut system.peripheral_clock_control,
         &clocks,
     );
 
-    let spi_interface = display_interface_spi::SPIInterfaceNoCS::new(spi, dc);
+    //let spi_interface = display_interface_spi::SPIInterfaceNoCS::new(spi, dc);
 
-    let mut display: GraphicsMode<_> = ssd1309::Builder::new().connect(spi_interface).into();
+    let mut display = Ssd1331::new(spi, sck, DisplayRotation::Rotate0);
 
-    display.reset(&mut res, &mut delay).unwrap();
+    display.reset(&mut cs, &mut delay).unwrap();
 
     display.init().unwrap();
     display.flush().unwrap();
@@ -135,11 +135,11 @@ fn main() -> ! {
     // Specify different text styles
     let text_style = MonoTextStyleBuilder::new()
         .font(&FONT_6X10)
-        .text_color(BinaryColor::On)
+        .text_color(Rgb565::WHITE)
         .build();
     let text_style_big = MonoTextStyleBuilder::new()
         .font(&FONT_9X18_BOLD)
-        .text_color(BinaryColor::On)
+        .text_color(Rgb565::WHITE)
         .build();
 
     // Fill display bufffer with a centered text with two lines (and two text

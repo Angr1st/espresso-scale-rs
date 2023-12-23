@@ -311,7 +311,7 @@ dependencies = [
  "esp32-hal",
  "hx711",
  "micromath",
- "ssd1309",
+ "ssd1331",
 ]
 
 [[package]]
@@ -595,11 +595,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "ssd1309"
+name = "ssd1331"
 version = "0.4.0"
-source = "git+https://github.com/Angr1st/ssd1309.git?branch=master#f9dc5344259bf6e5c2716c49bcec9c55e929c470"
 dependencies = [
- "display-interface",
  "embedded-graphics-core",
  "embedded-hal",
 ]

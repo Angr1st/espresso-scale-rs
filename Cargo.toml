@@ -13,7 +13,7 @@ esp-alloc = { version = "0.3.0" }
 hx711 = { git = "https://github.com/jonas-hagen/hx711.git", branch = "jh-fix-mode-enum", features = ["never_type"] }
 embedded-hal = { version="0.2.7", features = ["unproven"] }
 micromath = "2.0.0"
-ssd1309 = { git = "https://github.com/Angr1st/ssd1309.git", branch = "master" }
+ssd1331 = { path = "../ssd1331/"}
 embedded-graphics = "0.8"
 display-interface-spi = { version="0.4.1" }
 debounced-button = "0.4.1"
