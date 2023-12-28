@@ -16,6 +16,10 @@ use embedded_graphics::{
     text::{Alignment, Text},
     Drawable,
 };
+use embedded_graphics::primitives::Triangle;
+use embedded_graphics::primitives::Rectangle;
+use embedded_graphics::primitives::Circle;
+use embedded_graphics::primitives::PrimitiveStyle;
 use esp_backtrace as _;
 use esp_println::println;
 use hal::{
@@ -88,15 +92,15 @@ fn main() -> ! {
 
     //Display Config
     // esp32 -> (read connected to) ssd1309
-    let sck = io.pins.gpio18.into_push_pull_output(); //Serial Clock V_SPI_CLK SCK -> dc
+    let sck = io.pins.gpio18; //Serial Clock V_SPI_CLK SCK -> dc
     let miso = io.pins.gpio19; //Master In V_SPI_Q MISO -> cs
-    let scl = io.pins.gpio22; //Also Serial Clock V_SPI_WP SCL -> SCL
+    let scl_dc = io.pins.gpio22.into_push_pull_output(); //Also Serial Clock V_SPI_WP SCL -> SCL
     let sda = io.pins.gpio23; //Master out V_SPI_D MOSI -> SDA
-    let mut cs = io.pins.gpio5.into_push_pull_output(); //Slave Select V_SPI_CSO SS -> RES
+    let mut cs_rst = io.pins.gpio5.into_push_pull_output(); //Slave Select V_SPI_CSO SS -> RES
 
     let spi = hal::Spi::new_no_cs(
         peripherals.SPI3,
-        scl,
+        sck,
         sda,
         miso,
         8u32.MHz(),
@@ -107,12 +111,34 @@ fn main() -> ! {
 
     //let spi_interface = display_interface_spi::SPIInterfaceNoCS::new(spi, dc);
 
-    let mut display = Ssd1331::new(spi, sck, DisplayRotation::Rotate0);
+    let mut display = Ssd1331::new(spi, scl_dc, DisplayRotation::Rotate0);
 
-    display.reset(&mut cs, &mut delay).unwrap();
+    display.reset(&mut cs_rst, &mut delay).unwrap();
 
     display.init().unwrap();
     display.flush().unwrap();
+
+    // Triangle::new(
+    //     Point::new(8, 16 + 16),
+    //     Point::new(8 + 16, 16 + 16),
+    //     Point::new(8 + 8, 16),
+    // )
+    // .into_styled(PrimitiveStyle::with_stroke(Rgb565::RED, 1))
+    // .draw(&mut display)
+    // .unwrap();
+
+    // Rectangle::with_corners(Point::new(36, 16), Point::new(36 + 16, 16 + 16))
+    //     .into_styled(PrimitiveStyle::with_stroke(Rgb565::GREEN, 1))
+    //     .draw(&mut display)
+    //     .unwrap();
+
+    // Circle::new(Point::new(64, 16), 16)
+    //     .into_styled(PrimitiveStyle::with_stroke(Rgb565::BLUE, 1))
+    //     .draw(&mut display)
+    //     .unwrap();
+
+    // display.flush().unwrap();
+    // loop {}
 
     //Init hx711
     let dout = io.pins.gpio25.into_floating_input();
@@ -217,32 +243,32 @@ fn main() -> ! {
 
     // Wait 3 seconds
     timer0.start(3u64.secs());
-    //println!("Waiting for 3 seconds! Next output message");
-    //block!(timer0.wait()).unwrap();
+    println!("Waiting for 3 seconds! Next output message");
+    block!(timer0.wait()).unwrap();
 
     // Write single-line centered text "Start Calibration" to buffer
-    //Text::with_alignment(
-    //    "Start Calibration",
-    //    display.bounding_box().center(),
-    //    text_style,
-    //    Alignment::Center,
-    //)
-    //.draw(&mut display)
-    //.unwrap();
+    Text::with_alignment(
+        "Start Calibration",
+        display.bounding_box().center(),
+        text_style,
+        Alignment::Center,
+    )
+    .draw(&mut display)
+    .unwrap();
 
     // Write buffer to display
-    //display.flush().unwrap();
+    display.flush().unwrap();
     // Clear display buffer
-    //display.clear();
+    display.clear();
 
-    //println!("Waiting for 3 seconds! Next calibrate with 100g");
-    //block!(timer0.wait()).unwrap();
+    println!("Waiting for 3 seconds! Next calibrate with 100g");
+    block!(timer0.wait()).unwrap();
 
-    //let mut initialised = false;
+    let mut initialised = false;
     //load first raw value
     //2586.4148
-    let _raw_value = block!(receive_average(&mut hx711, 8)).into_ok();
-    let mut state = state.calibrate_fixed_value(2586.4148);
+    let _raw_value = block!(receive_average(&mut hx711, 8)).expect("Should be able to retrieve value from hx711!");
+    let mut state = state.calibrate(_raw_value);//calibrate_fixed_value(2586.4148);
 
     //let current_val = state.get_value(raw_value);
     //let scale_scale = state.get_scale();
@@ -256,7 +282,7 @@ fn main() -> ! {
 
     //get initial samples
     for _ in 0..SAMPLES {
-        let measurement = block!(hx711.retrieve()).into_ok();
+        let measurement = block!(hx711.retrieve()).expect("Should be able to retrieve value from hx711!");
         update_array(&mut measurements, measurement, &measurement_index);
         measurement_index.next();
     }
@@ -264,7 +290,7 @@ fn main() -> ! {
     println!("Current index is {}", measurement_index.current_index());
 
     loop {
-        let measurement = block!(hx711.retrieve()).into_ok();
+        let measurement = block!(hx711.retrieve()).expect("Should be able to retrieve value from hx711!");
         update_array(&mut measurements, measurement, &measurement_index);
         measurement_index.next();
         let raw_value = compute_average(&measurements);
