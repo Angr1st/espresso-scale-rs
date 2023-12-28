@@ -16,10 +16,6 @@ use embedded_graphics::{
     text::{Alignment, Text},
     Drawable,
 };
-use embedded_graphics::primitives::Triangle;
-use embedded_graphics::primitives::Rectangle;
-use embedded_graphics::primitives::Circle;
-use embedded_graphics::primitives::PrimitiveStyle;
 use esp_backtrace as _;
 use esp_println::println;
 use hal::{
@@ -103,13 +99,11 @@ fn main() -> ! {
         sck,
         sda,
         miso,
-        8u32.MHz(),
+        4u32.MHz(),
         hal::spi::SpiMode::Mode0,
         &mut system.peripheral_clock_control,
         &clocks,
     );
-
-    //let spi_interface = display_interface_spi::SPIInterfaceNoCS::new(spi, dc);
 
     let mut display = Ssd1331::new(spi, scl_dc, DisplayRotation::Rotate0);
 
@@ -118,27 +112,8 @@ fn main() -> ! {
     display.init().unwrap();
     display.flush().unwrap();
 
-    // Triangle::new(
-    //     Point::new(8, 16 + 16),
-    //     Point::new(8 + 16, 16 + 16),
-    //     Point::new(8 + 8, 16),
-    // )
-    // .into_styled(PrimitiveStyle::with_stroke(Rgb565::RED, 1))
-    // .draw(&mut display)
-    // .unwrap();
-
-    // Rectangle::with_corners(Point::new(36, 16), Point::new(36 + 16, 16 + 16))
-    //     .into_styled(PrimitiveStyle::with_stroke(Rgb565::GREEN, 1))
-    //     .draw(&mut display)
-    //     .unwrap();
-
-    // Circle::new(Point::new(64, 16), 16)
-    //     .into_styled(PrimitiveStyle::with_stroke(Rgb565::BLUE, 1))
-    //     .draw(&mut display)
-    //     .unwrap();
-
-    // display.flush().unwrap();
-    // loop {}
+    let center = display.bounding_box().center();
+    println!("Display Center: {}, {}", center.x, center.y);
 
     //Init hx711
     let dout = io.pins.gpio25.into_floating_input();

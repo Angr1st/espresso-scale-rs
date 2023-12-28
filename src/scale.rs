@@ -1,4 +1,9 @@
 use alloc::boxed::Box;
+use embedded_graphics::{draw_target::DrawTarget, pixelcolor::Rgb565};
+use embedded_graphics::mono_font::MonoTextStyle;
+use embedded_graphics::text::{Text, Alignment};
+use embedded_graphics::prelude::Point;
+use embedded_graphics::Drawable;
 use core::marker::PhantomData;
 
 #[derive(Debug)]
@@ -89,6 +94,28 @@ impl Scale<Weighing> {
 
     pub fn tare(&mut self, raw_value: i32) {
         self.state.set_offset(raw_value)
+    }
+}
+
+impl Scale<Menu> {
+    pub fn new(weighing: Scale<Weighing>) -> Self {
+        Self {
+            state: weighing.state,
+            marker: PhantomData,
+        }
+    }
+
+    pub fn draw_menu<'t, Drawable>(display: &mut Drawable, text_style: MonoTextStyle<'t, Rgb565>)
+        where Drawable: DrawTarget<Color = Rgb565, Error = core::convert::Infallible>
+    {
+        Text::with_alignment(
+            "Menu",
+            display.bounding_box().center() + Point::new(0, 0),
+            text_style,
+            Alignment::Center,
+        )
+        .draw(display)
+        .unwrap();
     }
 }
 
