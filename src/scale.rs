@@ -119,6 +119,15 @@ impl Scale<Menu> {
     }
 }
 
+impl From<Scale<Menu>> for Scale<Weighing> {
+    fn from(value: Scale<Menu>) -> Self {
+        Self {
+            state: value.state,
+            marker: PhantomData
+        }
+    }
+}
+
 pub enum Init {}
 pub enum Weighing {}
 pub enum Menu {}

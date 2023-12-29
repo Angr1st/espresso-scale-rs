@@ -281,7 +281,7 @@ fn main() -> ! {
 
         // Write single-line centered text "Hello World" to buffer
         Text::with_alignment(
-            &format!("{:.1$}g", current_val_g, 2),
+            &format!("{:.1$}g", current_val_g, 1),
             display.bounding_box().center(),
             text_style_big,
             Alignment::Center,
@@ -294,18 +294,22 @@ fn main() -> ! {
         // Clear display buffer
         display.clear();
 
+        menu_button.poll();
         tara_button.poll();
 
         let current_index = measurement_index.current_index();
         
         if current_index == SAMPLES_INDEX {
+            let menu_state = menu_button.read();
+
             let tara_state = tara_button.read();
-            match tara_state {
-                debounced_button::ButtonState::Down => {println!("Down")},
-                debounced_button::ButtonState::Press => println!("Press"),
-                debounced_button::ButtonState::Pressing => state.tare(raw_value),
-                debounced_button::ButtonState::LongPress => {println!("LongPress")},
-                debounced_button::ButtonState::Idle => {println!("Idle")},
+            match (menu_state, tara_state) {
+                (debounced_button::ButtonState::Down, debounced_button::ButtonState::Down) => {println!("Down")},
+                (debounced_button::ButtonState::Press, debounced_button::ButtonState::Press) => println!("Press"),
+                (debounced_button::ButtonState::Pressing, debounced_button::ButtonState::Pressing) => state.tare(raw_value),
+                (debounced_button::ButtonState::LongPress, debounced_button::ButtonState::LongPress) => {println!("LongPress")},
+                (debounced_button::ButtonState::Idle, debounced_button::ButtonState::Idle) => {println!("Idle")},
+                _ => println!("different state")
             }
         }
         // Wait 5 seconds
