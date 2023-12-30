@@ -264,6 +264,10 @@ fn main() -> ! {
 
     println!("Current index is {}", measurement_index.current_index());
 
+    let mut cycle_count: u32 = 0;
+    let before_cycles = timer0.now();
+    println!("Current timestamp: {before_cycles}");
+
     loop {
         let measurement = block!(hx711.retrieve()).expect("Should be able to retrieve value from hx711!");
         update_array(&mut measurements, measurement, &measurement_index);
@@ -304,18 +308,30 @@ fn main() -> ! {
 
             let tara_state = tara_button.read();
             match (menu_state, tara_state) {
-                (debounced_button::ButtonState::Down, debounced_button::ButtonState::Down) => {println!("Down")},
-                (debounced_button::ButtonState::Press, debounced_button::ButtonState::Press) => println!("Press"),
+                (debounced_button::ButtonState::Down, debounced_button::ButtonState::Down) => no_op(),
+                (debounced_button::ButtonState::Press, debounced_button::ButtonState::Press) => no_op(),
                 (debounced_button::ButtonState::Pressing, debounced_button::ButtonState::Pressing) => state.tare(raw_value),
-                (debounced_button::ButtonState::LongPress, debounced_button::ButtonState::LongPress) => {println!("LongPress")},
-                (debounced_button::ButtonState::Idle, debounced_button::ButtonState::Idle) => {println!("Idle")},
+                (debounced_button::ButtonState::LongPress, debounced_button::ButtonState::LongPress) => no_op(),
+                (debounced_button::ButtonState::Idle, debounced_button::ButtonState::Idle) => no_op(),
                 _ => println!("different state")
             }
         }
+
+        //Stop if certain amount of cycles was reached.
+        if cycle_count == 250 {
+            let after_cycles = timer0.now();
+            let diff = after_cycles - before_cycles;
+            println!("Current timestamp: {after_cycles} after 250 cycles. Diff: {diff}");
+            loop {}
+        }
+        cycle_count += 1;
+
         // Wait 5 seconds
         //block!(timer0.wait()).unwrap();
     }
 }
+
+fn no_op() { }
 
 fn receive_average<D, IN, OUT, EIN, EOUT>(
     hx711: &mut Hx711<D, IN, OUT>,
