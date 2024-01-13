@@ -323,6 +323,9 @@ fn main() -> ! {
             let diff = after_cycles - before_cycles;
             println!("Current timestamp: {after_cycles} after 250 cycles. Diff: {diff}");
             loop {}
+            //Start timestamp:   50965234
+            //After timestamp: 1191432346 after 250 cycles. 
+            //Diff:            1140467112
         }
         cycle_count += 1;
 
