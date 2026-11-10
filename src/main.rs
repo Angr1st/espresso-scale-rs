@@ -155,7 +155,7 @@ fn main() -> ! {
     .unwrap();
 
     Text::with_alignment(
-        "espresso-scale-rs",
+        "espresso-scale",
         display.bounding_box().center() + Point::new(0, 14),
         text_style,
         Alignment::Center,
@@ -175,7 +175,7 @@ fn main() -> ! {
     let state = Scale::<Init>::new();
 
     // Obtain the tara value
-    let tara_message = "Obtaining tara ...";
+    let tara_message = "Taring...";
     println!("{}", tara_message);
 
     // Write single-line centered text "Hello World" to buffer
@@ -221,9 +221,9 @@ fn main() -> ! {
     println!("Waiting for 3 seconds! Next output message");
     block!(timer0.wait()).unwrap();
 
-    // Write single-line centered text "Start Calibration" to buffer
+    // Write single-line centered text "Calibration" to buffer
     Text::with_alignment(
-        "Start Calibration",
+        "Calibration",
         display.bounding_box().center(),
         text_style,
         Alignment::Center,
