@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+export PATH="$HOME/.cargo/bin:$PATH"
+
+missing=()
+for package in build-essential curl pkg-config; do
+    if ! dpkg-query -W -f='${Status}' "$package" 2>/dev/null | grep -q 'install ok installed'; then
+        missing+=("$package")
+    fi
+done
+if ((${#missing[@]})); then
+    sudo apt-get update
+    sudo apt-get install -y "${missing[@]}"
+fi
+
+echo 'Preparing Rust and the ESP32 toolchain'
+if ! command -v rustup >/dev/null; then
+    installer="$(mktemp)"
+    curl --fail --location --retry 3 https://sh.rustup.rs -o "$installer"
+    sh "$installer" -y --profile minimal --default-toolchain stable
+    rm "$installer"
+fi
+if ! rustup run stable rustfmt --version >/dev/null 2>&1; then
+    rustup toolchain install stable --profile minimal --component rustfmt
+fi
+
+if ! espup --version 2>/dev/null | grep -q '0.19.0'; then
+    curl --fail --location --retry 3 \
+        https://github.com/esp-rs/espup/releases/download/v0.19.0/espup-x86_64-unknown-linux-gnu \
+        -o "$HOME/.cargo/bin/espup"
+    echo "f31411c64dffff4da0f0e23c432b9a5fda48942ff8695b8b21009ceb7007bcc0  $HOME/.cargo/bin/espup" | sha256sum --check
+    chmod +x "$HOME/.cargo/bin/espup"
+fi
+if ! rustup run esp rustc --version 2>/dev/null | grep -q '(1.97.0.0)' || [[ ! -f "$HOME/export-esp.sh" ]]; then
+    espup install --targets esp32 --toolchain-version 1.97.0.0
+fi
+source "$HOME/export-esp.sh"
+
+# Amp and supervised commands start in new login shells.
+marker='# espresso-scale-rs toolchain'
+if ! grep -Fqx "$marker" "$HOME/.bash_profile" 2>/dev/null; then
+    cat >> "$HOME/.bash_profile" <<'PROFILE'
+
+# espresso-scale-rs toolchain
+if [ -f "$HOME/.cargo/env" ]; then
+    . "$HOME/.cargo/env"
+fi
+if [ -f "$HOME/export-esp.sh" ]; then
+    . "$HOME/export-esp.sh"
+fi
+PROFILE
+fi
+
+echo 'Fetching locked firmware dependencies'
+cargo fetch --locked --manifest-path "$repo_root/Cargo.toml" --target xtensa-esp32-none-elf

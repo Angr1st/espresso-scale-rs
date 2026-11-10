@@ -1,2 +1,3 @@
 [toolchain]
+# Installed as `esp` by espup; .agents/setup pins release 1.97.0.0.
 channel = "esp"

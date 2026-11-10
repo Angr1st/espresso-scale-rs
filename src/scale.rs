@@ -1,10 +1,10 @@
 use alloc::boxed::Box;
-use embedded_graphics::{draw_target::DrawTarget, pixelcolor::Rgb565};
-use embedded_graphics::mono_font::MonoTextStyle;
-use embedded_graphics::text::{Text, Alignment};
-use embedded_graphics::prelude::Point;
-use embedded_graphics::Drawable;
 use core::marker::PhantomData;
+use embedded_graphics::mono_font::MonoTextStyle;
+use embedded_graphics::prelude::Point;
+use embedded_graphics::text::{Alignment, Text};
+use embedded_graphics::Drawable;
+use embedded_graphics::{draw_target::DrawTarget, pixelcolor::Rgb565};
 
 #[derive(Debug)]
 pub enum ScaleMode {
@@ -83,8 +83,6 @@ impl Scale<Weighing> {
     }
 
     pub fn get_units(&self, raw_value: i32) -> f32 {
-        use micromath::F32Ext;
-
         let value = raw_value - self.state.offset;
 
         let result = value as f32 * self.state.scale_reciprocal;
@@ -106,7 +104,8 @@ impl Scale<Menu> {
     }
 
     pub fn draw_menu<'t, Drawable>(display: &mut Drawable, text_style: MonoTextStyle<'t, Rgb565>)
-        where Drawable: DrawTarget<Color = Rgb565, Error = core::convert::Infallible>
+    where
+        Drawable: DrawTarget<Color = Rgb565, Error = core::convert::Infallible>,
     {
         Text::with_alignment(
             "Menu",
@@ -123,7 +122,7 @@ impl From<Scale<Menu>> for Scale<Weighing> {
     fn from(value: Scale<Menu>) -> Self {
         Self {
             state: value.state,
-            marker: PhantomData
+            marker: PhantomData,
         }
     }
 }
@@ -146,7 +145,7 @@ pub struct ActualScaleState {
     offset: i32,
     scale: f32,
     scale_reciprocal: f32,
-    mode: ScaleMode
+    mode: ScaleMode,
 }
 
 impl Default for ActualScaleState {
@@ -155,7 +154,7 @@ impl Default for ActualScaleState {
             offset: 0,
             scale: 1.0,
             scale_reciprocal: 1.0 / 1.0,
-            mode: ScaleMode::default()
+            mode: ScaleMode::default(),
         }
     }
 }
@@ -206,8 +205,6 @@ impl ActualScaleState {
     }
 
     pub fn get_units(&self, raw_value: i32) -> f32 {
-        use micromath::F32Ext;
-
         let value = raw_value - self.offset;
 
         let result = value as f32 * self.scale_reciprocal;
